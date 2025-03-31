@@ -1,0 +1,22 @@
+UI Design for WordWiz:
+1. Welcome Screen:
+   - Title: "Guess the Word" (fontSize: 32).
+   - Avatar: Happy face icon (center).
+   - Play Button: "Play" (ElevatedButton, green).
+2. Game Screen:
+   - Timer: 5 seconds (fontSize: 20, top-right).
+   - Clue: Text for hint (fontSize: 24).
+   - TextField: Input field for guess (OutlineInputBorder).
+   - Submit: Submit button (ElevatedButton).
+   - Hints: Hint button (IconButton, first letter).
+   - Feedback: Response text (fontSize: 18).
+3. Incorrect Screen:
+   - Message: "Time Out" or "Incorrect" (fontSize: 28).
+   - Avatar: Sad face icon (center).
+   - Correct Word: Display correct word (fontSize: 20).
+   - Buttons: "Quit" (red), "Play" (green).
+4. Correct Screen:
+   - Message: "You Won!" (fontSize: 28).
+   - Avatar: Happy face icon (center).
+   - Correct Word: Display correct word (fontSize: 20).
+   - Buttons: "Quit" (red), "Play" (green).

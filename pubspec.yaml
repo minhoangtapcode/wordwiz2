@@ -1,0 +1,32 @@
+name: wordwiz
+description: "A new Flutter project."
+publish_to: 'none' 
+environment:
+  sdk: ^3.7.0
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.6
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  flutter_tts: ^4.0.0
+  confetti: ^0.7.0
+  cloud_firestore: ^5.0.0
+  google_fonts: ^6.2.1
+  firebase_core: ^3.0.0
+  firebase_auth: ^5.5.1
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  flutter_lints: ^5.0.0
+
+
+flutter:
+
+  uses-material-design: true
+
+ 
