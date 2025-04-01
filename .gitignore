@@ -53,3 +53,5 @@ app.*.map.json
 
 # Bỏ qua các tệp .bin
 *.bin
+
+node_modules/
