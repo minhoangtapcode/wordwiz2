@@ -14,6 +14,7 @@ class GameProvider with ChangeNotifier {
     5: ["mountain", "elephant", "desert", "computer", "bicycle", "kitchen", "painting", "umbrella", "hospital", "guitar"],
   };
 
+  // Solo mode state
   String _clue = "";
   String _answer = "";
   String _feedback = "";
@@ -29,7 +30,20 @@ class GameProvider with ChangeNotifier {
   List<String?> _revealedLetters = [];
   bool _isStageUnlocked = true;
 
-  // Getters
+  // Multiplayer mode state
+  List<Map<String, dynamic>> _players = [
+    {'uid': 'player1', 'score': 0},
+    {'uid': 'player2', 'score': 0},
+    {'uid': 'player3', 'score': 0},
+    {'uid': 'player4', 'score': 0},
+  ];
+  String _currentWord = '';
+  List<String> _usedWords = [];
+  String _currentTurn = 'player1';
+  bool _isGameOver = false;
+  String _multiplayerFeedback = '';
+
+  // Getters for solo mode
   String get clue => _clue;
   String get answer => _answer;
   String get feedback => _feedback;
@@ -45,8 +59,15 @@ class GameProvider with ChangeNotifier {
   List<String?> get revealedLetters => _revealedLetters;
   bool get isStageUnlocked => _isStageUnlocked;
 
+  // Getters for multiplayer mode
+  List<Map<String, dynamic>> get players => _players;
+  String get currentWord => _currentWord;
+  List<String> get usedWords => _usedWords;
+  String get currentTurn => _currentTurn;
+  bool get isGameOver => _isGameOver;
+  String get multiplayerFeedback => _multiplayerFeedback;
+
   GameProvider() {
-    // Load tiến độ từ SharedPreferences
     _loadProgress();
   }
 
@@ -69,6 +90,7 @@ class GameProvider with ChangeNotifier {
     await prefs.setBool('isStageUnlocked', _isStageUnlocked);
   }
 
+  // Solo mode methods
   Future<void> startNewGame(int level, int stage) async {
     try {
       final words = wordLists[level] ?? wordLists[1]!;
@@ -142,6 +164,50 @@ class GameProvider with ChangeNotifier {
 
   void quit() {
     _saveProgress();
+    notifyListeners();
+  }
+
+  // Multiplayer mode methods
+  Future<void> submitMultiplayerWord(String word) async {
+    try {
+      final validationResult = await apiService.validateWord(word, _currentWord.isEmpty ? word : _currentWord, _usedWords);
+      bool isValid = validationResult['is_valid'] == true || validationResult['is_valid'] == "true";
+      String message = validationResult['message']?.toString() ?? 'Invalid word!';
+
+      if (isValid) {
+        _currentWord = word;
+        _usedWords.add(word);
+        final playerIndex = _players.indexWhere((p) => p['uid'] == _currentTurn);
+        _players[playerIndex]['score'] += 10;
+        _currentTurn = _players[(playerIndex + 1) % _players.length]['uid'];
+        _multiplayerFeedback = '';
+      } else {
+        _multiplayerFeedback = message;
+      }
+    } catch (e) {
+      _multiplayerFeedback = 'Error validating word: $e';
+    }
+    notifyListeners();
+  }
+
+  void skipTurn() {
+    _isGameOver = true;
+    _multiplayerFeedback = 'Game over! $_currentTurn skipped their turn.';
+    notifyListeners();
+  }
+
+  void resetMultiplayerGame() {
+    _players = [
+      {'uid': 'player1', 'score': 0},
+      {'uid': 'player2', 'score': 0},
+      {'uid': 'player3', 'score': 0},
+      {'uid': 'player4', 'score': 0},
+    ];
+    _currentWord = '';
+    _usedWords = [];
+    _currentTurn = 'player1';
+    _isGameOver = false;
+    _multiplayerFeedback = '';
     notifyListeners();
   }
 }
