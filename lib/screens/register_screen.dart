@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'welcome_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -10,23 +9,16 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _auth = FirebaseAuth.instance;
 
-  Future<void> _register() async {
-    try {
-      await _auth.createUserWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => WelcomeScreen()),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Registration failed: $e")));
-    }
+  void _register() {
+    // Placeholder for registration logic
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Registration feature not implemented yet")),
+    );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => WelcomeScreen()),
+    );
   }
 
   @override

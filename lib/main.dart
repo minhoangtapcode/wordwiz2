@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/welcome_screen.dart';
-import 'bloc/game_bloc.dart';
-import 'firebase/firebase__options.dart';
+import 'providers/game_provider.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(MyApp());
 }
 
@@ -17,8 +14,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => GameBloc(),
+    return ChangeNotifierProvider(
+      create: (context) => GameProvider(),
       child: MaterialApp(
         theme: ThemeData(
           primaryColor: Colors.lightBlue[100],

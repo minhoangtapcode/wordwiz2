@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:flutter_bloc/flutter_bloc.dart'; // Thêm import flutter_bloc
-import '../bloc/game_bloc.dart'; // Import GameBloc
+import 'package:provider/provider.dart';
+import '../providers/game_provider.dart';
 import 'welcome_screen.dart';
 import 'game_screen.dart';
 
@@ -56,61 +56,65 @@ class _IncorrectScreenState extends State<IncorrectScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.lightBlue[200]!, Colors.lightBlue[100]!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.sentiment_dissatisfied, size: 120, color: Colors.blueGrey),
-              SizedBox(height: 20),
-              Text("TIME OUT", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red)),
-              SizedBox(height: 20),
-              Text("THE WORD WAS", style: TextStyle(fontSize: 16, color: Colors.black54)),
-              SizedBox(height: 10),
-              Text(widget.answer.toUpperCase(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
-              Text("Words Mastered: 1", style: Theme.of(context).textTheme.bodyMedium),
-              SizedBox(height: 30),
-              Row(
+    return Consumer<GameProvider>(
+      builder: (context, gameProvider, child) {
+        return Scaffold(
+          body: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.lightBlue[200]!, Colors.lightBlue[100]!],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: Center(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => WelcomeScreen()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: Text("Quit", style: TextStyle(fontSize: 20, color: Colors.white)),
-                  ),
-                  SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Gọi PlayAgainEvent với category hiện tại
-                      BlocProvider.of<GameBloc>(context).add(PlayAgainEvent(BlocProvider.of<GameBloc>(context).state.category));
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => GameScreen()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: Text("Play", style: TextStyle(fontSize: 20, color: Colors.white)),
+                  Icon(Icons.sentiment_dissatisfied, size: 120, color: Colors.blueGrey),
+                  SizedBox(height: 20),
+                  Text("TIME OUT", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red)),
+                  SizedBox(height: 20),
+                  Text("THE WORD WAS", style: TextStyle(fontSize: 16, color: Colors.black54)),
+                  SizedBox(height: 10),
+                  Text(widget.answer.toUpperCase(), style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 20),
+                  Text("Words Mastered: ${gameProvider.wordsMastered}", style: Theme.of(context).textTheme.bodyMedium),
+                  SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          gameProvider.quit();
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => WelcomeScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        child: Text("Quit", style: TextStyle(fontSize: 20, color: Colors.white)),
+                      ),
+                      SizedBox(width: 20),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await gameProvider.playAgain(gameProvider.level, gameProvider.stage);
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => GameScreen()),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        child: Text("Try Again", style: TextStyle(fontSize: 20, color: Colors.white)),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

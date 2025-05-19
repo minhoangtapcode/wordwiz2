@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../bloc/game_bloc.dart';
+import 'package:provider/provider.dart';
+import '../providers/game_provider.dart';
 import 'game_screen.dart';
 import 'multiplayer_screen.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
-  final List<String> categories = ["Food", "Animals", "Travel"];
-  String selectedCategory = "Food";
+class WelcomeScreen extends StatefulWidget {
+  @override
+  _WelcomeScreenState createState() => _WelcomeScreenState();
+}
 
+class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,106 +61,98 @@ class WelcomeScreen extends StatelessWidget {
                 child: Icon(Icons.face, size: 80, color: Colors.blue),
               ),
               SizedBox(height: 20),
-              StreamBuilder<User?>(
-                stream: FirebaseAuth.instance.authStateChanges(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.active) {
-                    User? user = snapshot.data;
-                    if (user != null) {
-                      return Column(
-                        children: [
-                          Text(
-                            "Welcome, ${user.displayName ?? user.email}",
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                          SizedBox(height: 10),
-                          TextButton(
-                            onPressed: () async {
-                              await FirebaseAuth.instance.signOut();
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => WelcomeScreen(),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              "Logout",
-                              style: TextStyle(fontSize: 16, color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                  }
-                  return Text(
-                    "Your Username",
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  );
-                },
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Column(
                 children: [
                   Text(
-                    "Category: ",
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    "Welcome, Guest",
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
-                  DropdownButton<String>(
-                    value: selectedCategory,
-                    onChanged: (String? newValue) {
-                      selectedCategory = newValue!;
+                  SizedBox(height: 10),
+                  TextButton(
+                    onPressed: () {
+                      // Placeholder for logout
                     },
-                    items:
-                        categories.map<DropdownMenuItem<String>>((
-                          String value,
-                        ) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
+                    child: Text(
+                      "Logout",
+                      style: TextStyle(fontSize: 16, color: Colors.red),
+                    ),
                   ),
                 ],
               ),
               SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  if (FirebaseAuth.instance.currentUser != null) {
-                    context.read<GameBloc>().add(
-                      StartGameEvent(selectedCategory),
-                    );
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => GameScreen()),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Please log in first!")),
-                    );
-                  }
+              Consumer<GameProvider>(
+                builder: (context, gameProvider, child) {
+                  return Column(
+                    children: List.generate(5, (levelIndex) {
+                      final level = levelIndex + 1;
+                      return Column(
+                        children: [
+                          Text(
+                            "Level $level",
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          SizedBox(height: 10),
+                          GridView.count(
+                            shrinkWrap: true,
+                            crossAxisCount: 5,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            physics: NeverScrollableScrollPhysics(),
+                            children: List.generate(10, (stageIndex) {
+                              final stage = stageIndex + 1;
+                              final isUnlocked = level == 1 && stage == 1 ||
+                                  (gameProvider.isStageUnlocked &&
+                                      (level < gameProvider.level || (level == gameProvider.level && stage <= gameProvider.stage)));
+                              return GestureDetector(
+                                onTap: isUnlocked
+                                    ? () async {
+                                        await gameProvider.startNewGame(level, stage);
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(builder: (context) => GameScreen()),
+                                        );
+                                      }
+                                    : null,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: isUnlocked ? Colors.green[100] : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(10),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 3,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "$stage",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: isUnlocked ? Colors.black87 : Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                          SizedBox(height: 20),
+                        ],
+                      );
+                    }),
+                  );
                 },
-                child: Text(
-                  "Play Solo",
-                  style: TextStyle(fontSize: 20, color: Colors.white),
-                ),
               ),
-              SizedBox(height: 10),
+              SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  if (FirebaseAuth.instance.currentUser != null) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => MultiplayerScreen(),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Please log in first!")),
-                    );
-                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MultiplayerScreen()),
+                  );
                 },
                 child: Text(
                   "Play Multiplayer",
@@ -167,55 +160,34 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               SizedBox(height: 20),
-              StreamBuilder<User?>(
-                stream: FirebaseAuth.instance.authStateChanges(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.active) {
-                    User? user = snapshot.data;
-                    if (user == null) {
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => LoginScreen(),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              "Login",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RegisterScreen(),
-                                ),
-                              );
-                            },
-                            child: Text(
-                              "Sign Up",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ),
-                        ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),
                       );
-                    }
-                  }
-                  return SizedBox.shrink();
-                },
+                    },
+                    child: Text(
+                      "Login",
+                      style: TextStyle(fontSize: 16, color: Colors.blue),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => RegisterScreen()),
+                      );
+                    },
+                    child: Text(
+                      "Sign Up",
+                      style: TextStyle(fontSize: 16, color: Colors.blue),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
