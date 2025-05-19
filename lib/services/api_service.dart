@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.x.x:3000'; // Replace with your Flask server IP
+  static const String baseUrl = 'http://192.168.1.100:3000'; // Replace with your Flask server IP
 
   Future<Map<String, dynamic>> generateClue(String word, String category) async {
     final prefs = await SharedPreferences.getInstance();
