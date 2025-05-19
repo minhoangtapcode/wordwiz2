@@ -12,6 +12,8 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
+  int selectedLevel = 1; // Default level
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -23,72 +25,98 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             end: Alignment.bottomCenter,
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: Colors.yellow[200],
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  "Word Wiz",
-                  style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                "GUESS THE WORD",
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              SizedBox(height: 30),
-              CircleAvatar(
-                radius: 60,
-                backgroundColor: Colors.yellow[200],
-                child: Icon(Icons.face, size: 80, color: Colors.blue),
-              ),
-              SizedBox(height: 20),
-              Column(
+        child: SingleChildScrollView( // Wrap entire content in SingleChildScrollView
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40.0), // Add padding to avoid edge overflow
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    "Welcome, Guest",
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () {
-                      // Placeholder for logout
-                    },
+                  Container(
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.yellow[200],
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
                     child: Text(
-                      "Logout",
-                      style: TextStyle(fontSize: 16, color: Colors.red),
+                      "Word Wiz",
+                      style: TextStyle(
+                        fontSize: 40,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ],
-              ),
-              SizedBox(height: 20),
-              Consumer<GameProvider>(
-                builder: (context, gameProvider, child) {
-                  return Column(
-                    children: List.generate(5, (levelIndex) {
-                      final level = levelIndex + 1;
+                  SizedBox(height: 20),
+                  Text(
+                    "GUESS THE WORD",
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
+                  SizedBox(height: 30),
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.yellow[200],
+                    child: Icon(Icons.face, size: 80, color: Colors.blue),
+                  ),
+                  SizedBox(height: 20),
+                  Column(
+                    children: [
+                      Text(
+                        "Welcome, Guest",
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      SizedBox(height: 10),
+                      TextButton(
+                        onPressed: () {
+                          // Placeholder for logout
+                        },
+                        child: Text(
+                          "Logout",
+                          style: TextStyle(fontSize: 16, color: Colors.red),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Level selection dropdown
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Level: ",
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      DropdownButton<int>(
+                        value: selectedLevel,
+                        onChanged: (int? newValue) {
+                          setState(() {
+                            selectedLevel = newValue!;
+                          });
+                        },
+                        items: List.generate(5, (index) {
+                          return DropdownMenuItem<int>(
+                            value: index + 1,
+                            child: Text("Level ${index + 1}"),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  // Display stages for the selected level
+                  Consumer<GameProvider>(
+                    builder: (context, gameProvider, child) {
                       return Column(
                         children: [
                           Text(
-                            "Level $level",
+                            "Stages in Level $selectedLevel",
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                           SizedBox(height: 10),
@@ -100,13 +128,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             physics: NeverScrollableScrollPhysics(),
                             children: List.generate(10, (stageIndex) {
                               final stage = stageIndex + 1;
-                              final isUnlocked = level == 1 && stage == 1 ||
+                              final isUnlocked = (selectedLevel == 1 && stage == 1) ||
                                   (gameProvider.isStageUnlocked &&
-                                      (level < gameProvider.level || (level == gameProvider.level && stage <= gameProvider.stage)));
+                                      (selectedLevel < gameProvider.level ||
+                                          (selectedLevel == gameProvider.level && stage <= gameProvider.stage)));
                               return GestureDetector(
                                 onTap: isUnlocked
                                     ? () async {
-                                        await gameProvider.startNewGame(level, stage);
+                                        await gameProvider.startNewGame(selectedLevel, stage);
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(builder: (context) => GameScreen()),
@@ -139,57 +168,56 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               );
                             }),
                           ),
-                          SizedBox(height: 20),
                         ],
                       );
-                    }),
-                  );
-                },
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => MultiplayerScreen()),
-                  );
-                },
-                child: Text(
-                  "Play Multiplayer",
-                  style: TextStyle(fontSize: 20, color: Colors.white),
-                ),
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  TextButton(
+                    },
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
+                        MaterialPageRoute(builder: (context) => MultiplayerScreen()),
                       );
                     },
                     child: Text(
-                      "Login",
-                      style: TextStyle(fontSize: 16, color: Colors.blue),
+                      "Play Multiplayer",
+                      style: TextStyle(fontSize: 20, color: Colors.white),
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => RegisterScreen()),
-                      );
-                    },
-                    child: Text(
-                      "Sign Up",
-                      style: TextStyle(fontSize: 16, color: Colors.blue),
-                    ),
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => LoginScreen()),
+                          );
+                        },
+                        child: Text(
+                          "Login",
+                          style: TextStyle(fontSize: 16, color: Colors.blue),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => RegisterScreen()),
+                          );
+                        },
+                        child: Text(
+                          "Sign Up",
+                          style: TextStyle(fontSize: 16, color: Colors.blue),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         ),
       ),

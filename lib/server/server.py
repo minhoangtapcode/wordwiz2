@@ -1,13 +1,16 @@
 from flask import Flask, request, jsonify
 import os
+import json
+import re
 from openai import OpenAI
 
 app = Flask(__name__)
 
-# Initialize OpenAI client for Gemma 2 9B
+# Initialize OpenAI client for Gemma 2 9B with increased timeout
 client = OpenAI(
     base_url="http://localhost:11434/v1",
-    api_key="ollama"
+    api_key="ollama",
+    timeout=60  # Increase timeout to 60 seconds
 )
 
 # Root URL for GET requests
@@ -19,6 +22,7 @@ def home():
     <ul>
         <li><b>POST /generate_clue</b>: Generate a clue for a word and category. Example: <code>{"word": "apple", "category": "Level 1"}</code></li>
         <li><b>POST /generate_hint</b>: Generate a hint for a word. Example: <code>{"word": "apple"}</code></li>
+        <li><b>POST /validate_word</b>: Validate a word in a word chain game. Example: <code>{"word": "tiger", "prev_word": "cat", "used_words": ["cat"]}</code></li>
     </ul>
     <p>Use tools like curl or Postman to test.</p>
     """
@@ -50,11 +54,14 @@ def generate_clue():
             temperature=0.7
         )
 
+        if not hasattr(response, 'choices') or not response.choices:
+            raise ValueError("Invalid response from Ollama: No choices found")
+
         clue = response.choices[0].message.content.strip()
         return jsonify({"word": word, "category": category, "clue": clue}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to generate clue: {str(e)}"}), 500
 
 # Endpoint to generate a hint
 @app.route('/generate_hint', methods=['POST'])
@@ -82,11 +89,92 @@ def generate_hint():
             temperature=0.7
         )
 
+        if not hasattr(response, 'choices') or not response.choices:
+            raise ValueError("Invalid response from Ollama: No choices found")
+
         hint = response.choices[0].message.content.strip()
         return jsonify({"word": word, "hint": hint}), 200
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Failed to generate hint: {str(e)}"}), 500
+
+# Endpoint to validate a word in word chain game
+@app.route('/validate_word', methods=['POST'])
+def validate_word():
+    try:
+        data = request.get_json()
+        word = data.get('word', '').strip().lower()
+        prev_word = data.get('prev_word', '').strip().lower()
+        used_words = data.get('used_words', [])
+
+        if not word or not prev_word:
+            return jsonify({"error": "Word and prev_word are required"}), 400
+
+        # Manual check for used words to ensure correctness
+        if word in used_words:
+            return jsonify({"is_valid": False, "message": "Word already used"}), 200
+
+        prompt = f"""
+        You are an English language expert. Validate if the word '{word}' is a valid English word and suitable for a word chain game. 
+        The word must:
+        - Be a valid English word (not a proper noun, slang, or abbreviation).
+        - Start with the last letter of the previous word '{prev_word}'.
+        - Not be in the list of used words: {used_words}.
+        Return ONLY a JSON object with:
+        - "is_valid": true/false
+        - "message": Explanation if invalid (empty string if valid)
+        Example:
+        {{"is_valid": true, "message": ""}}
+        or
+        {{"is_valid": false, "message": "Not a valid English word"}}
+        Do NOT include any additional text, markdown, or comments outside the JSON.
+        If the word is already in the used words list, return:
+        {{"is_valid": false, "message": "Word already used"}}
+        """
+
+        response = client.chat.completions.create(
+            model="gemma2:9b",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=50,
+            temperature=0.7
+        )
+
+        if not hasattr(response, 'choices') or not response.choices:
+            raise ValueError("Invalid response from Ollama: No choices found")
+
+        content = response.choices[0].message.content.strip()
+
+        # Try to parse the content as JSON
+        try:
+            result = json.loads(content)
+            if not isinstance(result, dict) or 'is_valid' not in result:
+                raise ValueError("Invalid JSON format from model: Missing is_valid field")
+        except json.JSONDecodeError:
+            # Extract JSON from markdown or text if possible
+            json_match = re.search(r'\{.*?\}', content, re.DOTALL)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group(0))
+                except json.JSONDecodeError:
+                    # Fallback: Analyze content for validity
+                    is_valid = "valid English word" in content.lower() and word not in used_words
+                    message = content if not is_valid else "Word already used" if word in used_words else ""
+                    result = {"is_valid": is_valid, "message": message}
+            else:
+                # If no JSON found, fallback to manual validation
+                is_valid = False
+                message = "Failed to parse model response"
+                result = {"is_valid": is_valid, "message": message}
+        except ValueError as ve:
+            result = {"is_valid": false, "message": f"Model response format invalid: {str(ve)}"}
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to validate word: {str(e)}"}), 500
 
 # Handle favicon requests
 @app.route('/favicon.ico')
